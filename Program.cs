@@ -3,12 +3,41 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.IO;
+using LitJson;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace MakeSomethingGood
 {
     using MT = MaterialType;
     public enum EquipmentType { Weapon, Armor, Boots, Helmet, LegArmor, Ring }
-    public enum MaterialType { Maple, Rhodonite, Bone, Fabric, Garnet, Bronze, Herb, Fur, Jade, Cobalt, Horn, Amber }
+    [TypeConverter(typeof(MaterialTypeConverter))]
+    public enum MaterialType {
+        [Description("Maple")]
+        Maple,
+        [Description("Rhodonite")]
+        Rhodonite,
+        [Description("Bone")]
+        Bone,
+        [Description("Fabric")]
+        Fabric,
+        [Description("Garnet")]
+        Garnet, 
+        [Description ("Bronze")]
+        Bronze, 
+        [Description ("Herb")]
+        Herb, 
+        [Description ("Fur")]
+        Fur, 
+        [Description ("Jade")]
+        Jade, 
+        [Description ("Cobalt")]
+        Cobalt, 
+        [Description ("Horn")]
+        Horn, 
+        [Description ("Amber")]
+        Amber }
     
 
     public class Program
@@ -20,49 +49,33 @@ namespace MakeSomethingGood
         {
             equips = GetEquipmnets();
             eqStacks = new List<Stack<Equipment>>();
-            var currentMats = new Dictionary<MT, int>
+            var materials = ReadMaterialsFromFile(Console.ReadLine());            
+            using (var w = new StreamWriter(@"D:\cok\EQ-" + Guid.NewGuid().ToString().ToUpper() + ".txt"))
             {
-                {MT.Herb, 2 },
-                {MT.Fur, 2 },
-                {MT.Jade, 1},
-                {MT.Cobalt, 2},
-                {MT.Horn, 2 },
-                {MT.Amber, 0 },
-                {MT.Bronze, 1},
-                {MT.Garnet, 0 },                
-                {MT.Fabric, 3},
-                {MT.Bone, 2},
-                {MT.Rhodonite, 1},
-                {MT.Maple, 1 }
-            };
-
-
-
-            //foreach (var eq in equips.Where(x=>x.Level == 20 /*&& x.Materials.Keys.Contains(MaterialType.Fabric)*/))
-            //{
-            //    var canForge = true;
-            //    foreach (var m in eq.Materials)
-            //    {
-            //        canForge = canForge && currentMats.ContainsKey(m.Key) && currentMats[m.Key] >= m.Value;
-            //    }
-            //    if (canForge)
-            //    {
-            //        Console.Write(string.Format("Type: {0}\tLvl: {1}\tName: {2}\t\t|", eq.EType, eq.Level, eq.Name)); 
-            //        foreach (var m in eq.Materials)
-            //            Console.Write(m.Key + " " + m.Value + "; ");
-            //        Console.WriteLine();
-            //    }
-
-            //}
-            CheckForEq(currentMats, 1);
-            //Console.WriteLine(eqStacks.Count);
-            
+                //w.WriteLine("FOR " + fName);
+                CheckForEq(w, materials, 1, 30);
+            }            
+            //Console.WriteLine(eqStacks.Count);            
             Console.WriteLine("Program executed.");
             Console.ReadLine();
 
         }
 
-        public static bool CheckForEq(Dictionary<MT, int> materials, int lvl)
+        static Dictionary<MT, int> ReadMaterialsFromFile(string filename)
+        {
+            var jText = string.Empty;
+            var fName = string.Empty;
+
+            if (string.IsNullOrEmpty(filename))
+            {
+                throw new ArgumentNullException();
+            }
+
+            using (var tr = new StreamReader(filename)){jText = tr.ReadToEnd();}
+            return JsonMapper.ToObject<Dictionary<string, int>>(jText).ToDictionary(item => (MT)Enum.Parse(typeof(MT), item.Key), item => item.Value);
+        }
+
+        public static bool CheckForEq(StreamWriter sw, Dictionary<MT, int> materials, int lvl, int maxLvl = 40)
         {           
             foreach (var eq in equips.Where(x => x.Level == lvl))
             {
@@ -71,15 +84,11 @@ namespace MakeSomethingGood
                 {
                     canForge = canForge && materials.ContainsKey(m.Key) && materials[m.Key] >= m.Value;
                 }
-                if (canForge)
+                if (canForge && lvl <= maxLvl)
                 {
-                    //    eqStacks.Add(new Stack<Equipment>());
-                    //eqStacks.Last().Push(eq);
-                    Console.WriteLine(string.Format("{0}{1} => {2} => {3}",
-                        "+-".PadLeft(2*eq.Level/5-6, ' '), eq.EType, eq.Level, eq.Name));
-                    CheckForEq(Sub(materials, eq), lvl + 5);
-                    
-                    //materials = Add(materials, eq);
+                    sw.WriteLine(string.Format("{0}{1} => {2} => {3}", "+-".PadLeft(eq.Level == 1 ? 0 : 2 * eq.Level / 5 + 2, ' '), eq.EType, eq.Level, eq.Name));
+                    //Console.WriteLine(string.Format("{0}{1} => {2} => {3}", "+-".PadLeft(2 * (eq.Level == 1 ? 0 : eq.Level) / 5, ' '), eq.EType, eq.Level, eq.Name));
+                    CheckForEq(sw, Sub(materials, eq), lvl == 1 ? 5 : lvl + 5, maxLvl);
                 }
                 else
                 {
@@ -87,9 +96,7 @@ namespace MakeSomethingGood
                     //    materials = Add(materials, eq);
                 }
             }
-            return false;  
-            
-
+            return false;
         }
 
         public static Dictionary<MT, int> Sub(Dictionary<MT, int> target, Equipment eq)
@@ -297,7 +304,7 @@ namespace MakeSomethingGood
         public Equipment(EquipmentType t, Dictionary<MT, int> m, int l, string name)
             : this(t, m)
         {
-            this.Name = name.PadRight(20);
+            this.Name = name; //.PadRight(20);
             this.Level = l;
         }
     }
@@ -390,6 +397,18 @@ namespace MakeSomethingGood
         public Ring(Dictionary<MT, int> m, int l, string n)
             : base(EquipmentType.Ring, m, l, n)
         { }
+    }
+
+    public class MaterialTypeConverter : TypeConverter
+    {
+        public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
+        {
+            if (value is string)
+            {
+                return (MaterialType) Enum.Parse(typeof(MaterialType), (string) value);
+            }
+            return base.ConvertFrom(context, culture, value);
+        }
     }
 }
 
