@@ -19,3 +19,9 @@ D:\GitRepo\ClashForgeEquipment\bin\Debug\MakeSomethingGood.exe
 D:\GitRepo\ClashForgeEquipment\bin\Debug\MakeSomethingGood.pdb
 D:\GitRepo\ClashForgeEquipment\bin\Debug\LitJson.dll
 D:\GitRepo\ClashForgeEquipment\obj\Debug\MakeSomethingGood.csprojResolveAssemblyReference.cache
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\obj\Debug\MakeSomethingGood.exe
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\obj\Debug\MakeSomethingGood.pdb
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\MakeSomethingGood.exe
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\MakeSomethingGood.pdb
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\LitJson.dll
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\obj\Debug\MakeSomethingGood.csprojResolveAssemblyReference.cache

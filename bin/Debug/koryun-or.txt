@@ -1,0 +1,21 @@
+{
+	"Configuration":{
+		"Min" : 25,
+		"Max" : 35,
+		"NeedEq" : "Knight Heavy Boots"
+	},
+	"Materials":{
+		"Herb": 0,
+		"Fur" : 0,
+		"Jade" : 0,
+		"Cobalt" : 3,
+		"Horn" : 1,
+		"Amber" : 0,
+		"Bronze" : 0,
+		"Garnet" : 1,
+		"Fabric" : 0,
+		"Bone" : 0,
+		"Rhodonite" : 1,
+		"Maple" : 0
+	}
+}

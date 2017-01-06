@@ -1,0 +1,21 @@
+{
+	"Configuration":{
+		"Min" : 25,
+		"Max" : 35,
+		"NeedEq" : "Ring of Cruelty"
+	},
+	"Materials":{
+		"Herb": 0,
+		"Fur" :2,
+		"Jade" : 1,
+		"Cobalt" : 1,
+		"Horn" : 1,
+		"Amber" : 0,
+		"Bronze" : 0,
+		"Garnet" : 0,
+		"Fabric" : 1,
+		"Bone" : 0,
+		"Rhodonite" : 2,
+		"Maple" : 3
+	}
+}
