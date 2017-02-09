@@ -6,40 +6,46 @@ using System.Text;
 using System.IO;
 using LitJson;
 using System.ComponentModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Reflection;
 
 namespace MakeSomethingGood
 {
     using MT = MaterialType;
+    using ST = Tuple<double, string, string, string>;
     public enum EquipmentType { Weapon, Armor, Boots, Helmet, LegArmor, Ring }
+
     [TypeConverter(typeof(MaterialTypeConverter))]
     public enum MaterialType {Maple,Rhodonite,Bone,Fabric,Garnet,Bronze,Herb,Fur,Jade,Cobalt,Horn,Amber }
+    
     
 
     public class Program
     {
         public static List<Equipment> equips;
-        public static List<Stack<Equipment>> eqStacks;
-        static Stack<Equipment> eqs;
-        static int __max = -30;
+        public static List<Tuple<double, string, string, string>> eqStacks;
+        //static Stack<Equipment> eqs;
+        static double __max = -30;
 
         static void Main(string[] args)
         {            
             equips = GetEquipmnets();
-            eqStacks = new List<Stack<Equipment>>();
+            eqStacks = new List<ST>();
             var filename = Console.ReadLine();
             var configuration = ReadMaterialsFromFile(filename);
             var materials = configuration.Materials;     
             using (var w = new StreamWriter(@"C:\cok\EQ-" + Guid.NewGuid().ToString().ToUpper() + ".txt"))
             {
-                w.WriteLine("FOR " + filename);
-                eqs = new Stack<Equipment>();
-                CheckForEq2(w, materials, configuration.MinLvl, configuration.MaxLvl, configuration.NeedEq);
-            }            
-            //Console.WriteLine(eqStacks.Count);            
+                w.WriteLineAsync("FOR " + filename);
+                InitializeParallel(w, materials, configuration).Wait();
+                eqStacks = eqStacks.Where(x=>x != null && x.Item1 == __max).ToList();
+                w.WriteLine($"Best forge requires {__max} materials");
+                for (int i = 0; i < eqStacks.Count; i++)
+                    w.WriteLine($@"{eqStacks[i].Item2} >> {eqStacks[i].Item3}");
+            }                       
             Console.WriteLine("Program executed.");
-            //Console.ReadLine();
-            
+            Console.ReadLine();
         }
         
 
@@ -60,17 +66,17 @@ namespace MakeSomethingGood
             _conf.MinLvl = int.Parse(_config["Min"].ToString());
             _conf.MaxLvl = int.Parse(_config["Max"].ToString());
             _conf.NeedEq = _config.Keys.Contains("NeedEq") ? _config["NeedEq"].ToString() : "";
-            _conf.Materials = new Dictionary<MT, int>();
+            _conf.Materials = new Dictionary<MT, double>();
             var _mats =  _a["Materials"] ;
             foreach (var key in _mats.Keys)
             {
-                _conf.Materials.Add((MT)Enum.Parse(typeof(MT), key) , (int) _mats[key]);
+                _conf.Materials.Add((MT)Enum.Parse(typeof(MT), key) , Convert.ToDouble(_mats[key].ToString()));
             }
             return _conf;
             //return JsonMapper.ToObject<Dictionary<string, int>>(jText).ToDictionary(item => (MT)Enum.Parse(typeof(MT), item.Key), item => item.Value);
         }
 
-        public static bool CheckForEq(StreamWriter sw, Dictionary<MT, int> materials, int lvl, int maxLvl = 40)
+        public static bool CheckForEq(StreamWriter sw, Dictionary<MT, double> materials, int lvl, int maxLvl = 40)
         {
             foreach (var eq in equips.Where(x => x.Level == lvl))
             {
@@ -89,7 +95,72 @@ namespace MakeSomethingGood
             return false;
         }
 
-        public static bool CheckForEq2(StreamWriter sw, Dictionary<MT, int> materials, int lvl, int maxLvl = 40, string needEq = "")
+        public async static Task InitializeParallel(StreamWriter sw, Dictionary<MT, double> materials, Configuration conf)
+        {
+            var tasks = new Dictionary<Equipment, Task>();
+
+            Func<Equipment, Task> pproc = (x) => {
+                Console.WriteLine($"Start for {x.Name}");
+                var eqs = new Stack<Equipment>();
+                return Task.Run(() => CheckForEq(sw, eqs, materials, x, conf.MaxLvl, conf.NeedEq))
+                .ContinueWith((y)=>Console.WriteLine($"Executed for {x.Name}"));
+            };
+
+            var a = equips.Where(x => x.Level == conf.MinLvl).ForEachAsync(pproc);
+            await a;
+            Console.WriteLine("Executed");
+        }
+
+        public static async Task CheckForEq(StreamWriter sw, Stack<Equipment> eqs, Dictionary<MT, double> materials, Equipment sEq, int maxLvl = 40, string needEq = "")
+        {
+            var canForge = true;
+            foreach (var m in sEq.Materials)
+            {
+                canForge = canForge && materials.ContainsKey(m.Key) && materials[m.Key] >= m.Value;
+            }
+            if (canForge && sEq.Level < maxLvl)
+            {
+                eqs.Push(sEq);
+                await CheckForEq2(sw, eqs, Sub(materials, sEq), sEq.Level == 1 ? 5 : sEq.Level + 5, maxLvl, needEq);
+                eqs.Pop();
+            }
+            else if (sEq.Level == maxLvl)
+            {
+                if (!string.IsNullOrEmpty(needEq))
+                {
+                    if (needEq == sEq.Name)
+                    {
+                        eqs.Push(sEq);
+                        var _max = Sub(materials, sEq).Where(x => x.Value < 0).Sum(y => y.Value);
+                        if (_max >= __max)
+                        {
+                            __max = _max;
+                            eqStacks.Add(new ST(__max, GetStStr(eqs), GetInsMatString(Sub(materials, sEq)), GetMatString(Sub(materials, sEq))));
+                        }
+                        eqs.Pop();
+                    }
+                }
+                else
+                {
+                    eqs.Push(sEq);
+                    var _max = Sub(materials, sEq).Where(x => x.Value < 0).Sum(y => y.Value);
+                    if (_max >= __max)
+                    {
+                        __max = _max;
+                        eqStacks.Add(new ST(__max, GetStStr(eqs), GetInsMatString(Sub(materials, sEq)), GetMatString(Sub(materials, sEq))));
+                    }
+                    eqs.Pop();
+                }
+            }
+            else if (!canForge && sEq.Level < maxLvl)
+            {
+                eqs.Push(sEq);
+                await CheckForEq2(sw, eqs, Sub(materials, sEq), sEq.Level == 1 ? 5 : sEq.Level + 5, maxLvl, needEq);
+                eqs.Pop();
+            }            
+        }
+
+        public static async Task CheckForEq2(StreamWriter sw, Stack<Equipment> eqs, Dictionary<MT, double> materials, int lvl, int maxLvl = 40, string needEq = "")
         {
             foreach (var eq in equips.Where(x => x.Level == lvl))
             {
@@ -101,61 +172,72 @@ namespace MakeSomethingGood
                 if (canForge && lvl < maxLvl)
                 {
                     eqs.Push(eq);
-                    CheckForEq2(sw, Sub(materials, eq), lvl == 1 ? 5 : lvl + 5, maxLvl, needEq);
+                    await CheckForEq2(sw, eqs, Sub(materials, eq), lvl == 1 ? 5 : lvl + 5, maxLvl, needEq);
                     eqs.Pop();
                 }
                 else if (lvl == maxLvl)
                 {
-                    if (needEq == eq.Name)
+                    if (!string.IsNullOrEmpty(needEq))
+                    {
+                        if (needEq == eq.Name)
+                        {
+                            eqs.Push(eq);
+                            var _max = Sub(materials, eq).Where(x => x.Value < 0).Sum(y => y.Value);
+                            if (_max >= __max)
+                            {
+                                __max = _max;
+                                eqStacks.Add(new ST(__max, GetStStr(eqs), GetInsMatString(Sub(materials, eq)), GetMatString(Sub(materials, eq))));
+                            }
+                            eqs.Pop();
+                        }
+                    }
+                    else
                     {
                         eqs.Push(eq);
-                        var _max = Sub(materials, eq).Where(x => x.Value < 1).Sum(y => y.Value);
+                        var _max = Sub(materials, eq).Where(x => x.Value < 0).Sum(y => y.Value);
                         if (_max >= __max)
                         {
                             __max = _max;
-                            sw.WriteLine("{0} >> {1} >> {2}", __max, string.Join(" > ", eqs.Select(x => x.Name).ToArray()), GetInsuffMaterialsString(Sub(materials, eq)));
+                            eqStacks.Add(new ST(__max, GetStStr(eqs), GetInsMatString(Sub(materials, eq)), GetMatString(Sub(materials, eq))));
                         }
                         eqs.Pop();
-                    }
+                    }                    
                 }
-                //else if (!canForge && lvl == maxLvl)
-                //{
-                //    //if(need == eq.Name)
-                //    //sw.WriteLine(string.Format("{0} insuff {1} => {2} => {3} |=> {4}", "+-".PadLeft(eq.Level == 1 ? 0 : 2 * eq.Level / 5 + 2, ' '), eq.EType, eq.Level, eq.Name,GetInsuffMaterialsString(Sub(materials, eq))));
-                //}
                 else if (!canForge && lvl < maxLvl)
                 {
-                    //sw.WriteLine(string.Format("{0} insuff {1} => {2} => {3} |=> {4}", "+-".PadLeft(eq.Level == 1 ? 0 : 2 * eq.Level / 5 + 2, ' '), eq.EType, eq.Level, eq.Name,GetInsuffMaterialsString(Sub(materials, eq))));
                     eqs.Push(eq);
-                    CheckForEq2(sw, Sub(materials, eq), lvl == 1 ? 5 : lvl + 5, maxLvl, needEq);
+                    await CheckForEq2(sw, eqs, Sub(materials, eq), lvl == 1 ? 5 : lvl + 5, maxLvl, needEq);
                     eqs.Pop();
                 }
             }
-            //sw.WriteLine(max);
-            return false;
         }
 
-        public static Dictionary<MT, int> Sub(Dictionary<MT, int> target, Equipment eq)
+        public static Dictionary<MT, double> Sub(Dictionary<MT, double> target, Equipment eq)
         {
-            var _m = new Dictionary<MT, int>(target);
+            var _m = new Dictionary<MT, double>(target);
             foreach (var m in eq.Materials)
                 _m[m.Key]-=m.Value;
             return _m;
         }
 
-        public static Dictionary<MT, int> Add(Dictionary<MT, int> target, Equipment eq)
+        public static Dictionary<MT, double> Add(Dictionary<MT, double> target, Equipment eq)
         {
             foreach (var m in eq.Materials)
                 target[m.Key]+= m.Value;
             return target;
         }
 
-        public static string GetMaterialsString(Dictionary<MT, int> m)
+        public static string GetStStr(Stack<Equipment> eqs)
         {
-            return string.Join("; ",m.Select(x => x.Key.ToString().Substring(0,2)+ ":" + x.Value).ToArray());
+            return string.Join(" > ", eqs.Select(x => x.Name).ToArray());
         }
 
-        public static string GetInsuffMaterialsString(Dictionary<MT, int> m)
+        public static string GetMatString(Dictionary<MT, double> m)
+        {
+            return string.Join("; ", m.Select(x => x.Key.ToString().Substring(0, 2) + ":" + x.Value).ToArray());
+        }
+
+        public static string GetInsMatString(Dictionary<MT, double> m)
         {
             return string.Join("; ", m.Where(y=>y.Value<0).Select(x => x.Key.ToString().Substring(0, 2) + ":" + x.Value).ToArray());
         }
@@ -320,12 +402,22 @@ namespace MakeSomethingGood
         }
     }
 
-    struct Configuration
+    public static class Extensions
+    {
+        public static Task ForEachAsync<T>(this IEnumerable<T> source, Func<T, Task> body)
+        {
+            return Task.WhenAll(
+                from item in source
+                select Task.Run(() => body(item)));
+        }
+    }
+
+    public struct Configuration
     {
         public int MinLvl { get; set; }
         public int MaxLvl { get; set; }
         public string NeedEq { get; set; }
-        public Dictionary<MT, int> Materials { get; set; }
+        public Dictionary<MT, double> Materials { get; set; }
     }
 
     public class Equipment
@@ -459,7 +551,7 @@ namespace MakeSomethingGood
         {
             if (value is string)
             {
-                return (MaterialType) Enum.Parse(typeof(MaterialType), (string) value);
+                return (MT) Enum.Parse(typeof(MT), (string) value);
             }
             return base.ConvertFrom(context, culture, value);
         }

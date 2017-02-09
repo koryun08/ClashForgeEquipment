@@ -24,4 +24,5 @@ C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\obj\Debug\MakeSomethingGood
 C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\MakeSomethingGood.exe
 C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\MakeSomethingGood.pdb
 C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\LitJson.dll
+C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\bin\Debug\MakeSomethingGood.exe.config
 C:\Users\Koryun\Documents\GitHub\ClashForgeEquipment\obj\Debug\MakeSomethingGood.csprojResolveAssemblyReference.cache

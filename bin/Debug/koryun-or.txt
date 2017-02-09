@@ -5,17 +5,17 @@
 		"NeedEq" : "Knight Heavy Boots"
 	},
 	"Materials":{
-		"Herb": 0,
+		"Herb": 2,
 		"Fur" : 0,
-		"Jade" : 0,
-		"Cobalt" : 3,
-		"Horn" : 1,
-		"Amber" : 0,
+		"Jade" : 1,
+		"Cobalt" : 2,
+		"Horn" : 0,
+		"Amber" : 1,
 		"Bronze" : 0,
 		"Garnet" : 1,
-		"Fabric" : 0,
-		"Bone" : 0,
+		"Fabric" : 1,
+		"Bone" : 1,
 		"Rhodonite" : 1,
-		"Maple" : 0
+		"Maple" : 1
 	}
 }

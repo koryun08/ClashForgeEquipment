@@ -2,20 +2,20 @@
 	"Configuration":{
 		"Min" : 25,
 		"Max" : 35,
-		"NeedEq" : "Ring of Cruelty"
+		"NeedEq" : "Knight Heavy Boots"
 	},
 	"Materials":{
-		"Herb": 0,
-		"Fur" :2,
+		"Herb": "0,25",
+		"Fur" : "1,75",
 		"Jade" : 1,
-		"Cobalt" : 1,
-		"Horn" : 1,
-		"Amber" : 0,
-		"Bronze" : 0,
-		"Garnet" : 0,
-		"Fabric" : 1,
-		"Bone" : 0,
-		"Rhodonite" : 2,
-		"Maple" : 3
+		"Cobalt" : "0,5",
+		"Horn" : "0,5",
+		"Amber" : 1,
+		"Bronze" : "1",
+		"Garnet" : "1,75",
+		"Fabric" : "1,5",
+		"Bone" : "0,25",
+		"Rhodonite" : 1,
+		"Maple" : "2"
 	}
 }
